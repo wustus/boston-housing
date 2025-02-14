@@ -3,11 +3,20 @@ from dataset_loader import BostonHousingDataset
 from ds_transformer import DatasetTransformer
 from torch.utils.data import DataLoader
 from network import FFNetwork
+from math import inf
 
 import torch
 import random
+import os
 
-random.seed(42)
+# default: 42 else get from env
+SEED = os.getenv("SEED")
+SEED = 42 if SEED is None else int(SEED)
+random.seed(SEED)
+
+# default: true, else mostly truish
+DEBUG = os.getenv("DEBUG")
+DEBUG = False if "0" in str(DEBUG) else True
 
 with open("data/boston.csv") as f:
     lines = f.readlines()[22:]
@@ -42,7 +51,9 @@ net = FFNetwork(len(train_ds.features()), [25, 5], 1, dropout=0.1)
 opt = torch.optim.SGD(net.parameters(), lr=1e-4)
 
 # way too many, stopping before that is a good idea
-epochs = 10_000
+epochs = 5_000
+
+best_avg_diff = inf
 
 for e in range(1, epochs+1):
 
@@ -56,7 +67,7 @@ for e in range(1, epochs+1):
         loss.backward()
         opt.step()
 
-    if e % 100 == 0:
+    if e % 100 == 0 and DEBUG:
         print(f"Epoch {e}, Total Loss: {t_loss / len(train_ds):.4f}.")
 
     t_diff = 0
@@ -68,4 +79,11 @@ for e in range(1, epochs+1):
         mape += abs((out - y) / y).sum()
         t_diff += diff
     if e % 100 == 0:
-        print(f"Epoch {e}, Average Difference: {t_diff / (len(test_ds)):.4f}, MAPE: {(1/len(test_ds)) * mape * 100.0:.2f}%")
+        avg_diff = t_diff / len(test_ds)
+        if DEBUG:
+            print(f"Epoch {e}, Average Difference: {avg_diff:.4f}, MAPE: {(1/len(test_ds)) * mape * 100.0:.2f}%")
+
+        if avg_diff < best_avg_diff:
+            best_avg_diff = avg_diff
+
+print(f"Best Avg Diff: {best_avg_diff:.4f}")

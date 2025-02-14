@@ -22,4 +22,4 @@ for seed in {42..51}; do
 done
 
 TOTAL_AVG_DIFF=$(bc -e "scale=4; ${TOTAL_AVG_DIFF} / 10")
-echo "**AVG: ${TOTAL_AVG_DIFF}**"
+echo -e "\n**AVG: ${TOTAL_AVG_DIFF}**"

@@ -1,6 +1,5 @@
 
 from torch.utils.data import Dataset
-from sklearn import preprocessing
 
 import torch
 import numpy as np
@@ -9,33 +8,34 @@ import pandas as pd
 
 class BostonHousingDataset(Dataset):
 
-    def __init__(self, path, filter=[], test=False):
+    def __init__(self, path, transformer, filter=[], test=False):
 
         self.data = []
         self.labels = []
 
         df = pd.read_csv(path, sep=r"\s+")
-        pt = preprocessing.PowerTransformer(method="yeo-johnson", standardize=False)
+
+        train = not test
 
         for col in df:
             if col == "MEDV":
                 continue
 
             if col in filter:
-                del df[col]
+                df.drop(columns=[col], inplace=True)
                 continue
 
-            if col == "CHAS" or col == "RMCHAS":
+            if col == "CHAS":
                 continue
 
             if col in ["CRIM", "ZN", "B"]:
                 df[col] = np.log1p(df[col])
 
-            if col in ["NOX", "AGE", "LSTAT", "DIS", "TAX"]:
-                df[col] = pt.fit_transform(df[[col]])
+            if train:
+                df[col] = transformer.fit_transform(df[col], col).flatten()
+            else:
+                df[col] = transformer.transform(df[col], col).flatten()
 
-            df[col] -= df[col].mean()
-            df[col] /= df[col].std()
 
         self.df = df
 

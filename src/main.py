@@ -1,10 +1,13 @@
 
 from dataset_loader import BostonHousingDataset
+from ds_transformer import DatasetTransformer
 from torch.utils.data import DataLoader
 from network import FFNetwork
 
 import torch
 import random
+
+random.seed(42)
 
 with open("data/boston.csv") as f:
     lines = f.readlines()[22:]
@@ -18,15 +21,17 @@ with open("data/train.csv", "w") as f:
     f.write(cols + "\n")
     f.write("\n".join(lines[:d_len//2]))
 
-
 with open("data/test.csv", "w") as f:
     f.write(cols + "\n")
     f.write("\n".join(lines[d_len//2:]))
 
+# filter out cols (not used)
 filter = []
 
-train_ds = BostonHousingDataset("data/train.csv", filter=filter)
-test_ds = BostonHousingDataset("data/test.csv", filter=filter, test=True)
+transformer = DatasetTransformer()
+
+train_ds = BostonHousingDataset("data/train.csv", transformer, filter=filter)
+test_ds = BostonHousingDataset("data/test.csv", transformer, filter=filter, test=True)
 
 batch_size = 8
 
@@ -36,6 +41,7 @@ test_dl = DataLoader(test_ds, batch_size=batch_size, shuffle=False)
 net = FFNetwork(len(train_ds.features()), [25, 5], 1, dropout=0.1)
 opt = torch.optim.SGD(net.parameters(), lr=1e-4)
 
+# way too many, stopping before that is a good idea
 epochs = 10_000
 
 for e in range(1, epochs+1):
